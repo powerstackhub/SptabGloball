@@ -1,0 +1,220 @@
+-- Ensure pgcrypto is available for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ============= trusts =============
+CREATE TABLE IF NOT EXISTS public.trusts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  trust_name text NOT NULL,
+  board_member text NOT NULL,
+  designation text NOT NULL,
+  description text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.trusts ENABLE ROW LEVEL SECURITY;
+
+-- public read
+DROP POLICY IF EXISTS trusts_public_select ON public.trusts;
+CREATE POLICY trusts_public_select ON public.trusts
+  FOR SELECT
+  USING (true);
+
+-- admin insert (INSERT uses WITH CHECK only)
+DROP POLICY IF EXISTS trusts_admin_insert ON public.trusts;
+CREATE POLICY trusts_admin_insert ON public.trusts
+  FOR INSERT
+  WITH CHECK (auth.jwt() ->> 'role' = 'admin');
+
+-- admin update (UPDATE can have USING and WITH CHECK)
+DROP POLICY IF EXISTS trusts_admin_update ON public.trusts;
+CREATE POLICY trusts_admin_update ON public.trusts
+  FOR UPDATE
+  USING (auth.jwt() ->> 'role' = 'admin')
+  WITH CHECK (auth.jwt() ->> 'role' = 'admin');
+
+-- admin delete
+DROP POLICY IF EXISTS trusts_admin_delete ON public.trusts;
+CREATE POLICY trusts_admin_delete ON public.trusts
+  FOR DELETE
+  USING (auth.jwt() ->> 'role' = 'admin');
+
+
+
+-- ============= pyramid_centers =============
+CREATE TABLE IF NOT EXISTS public.pyramid_centers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  address text NOT NULL,
+  phone text,
+  email text,
+  hours text NOT NULL,
+  description text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.pyramid_centers
+  ADD COLUMN contact_name text,
+  ADD COLUMN center_name text,
+  ADD COLUMN languages text,
+  ADD COLUMN village text,
+  ADD COLUMN district text,
+  ADD COLUMN state text,
+  ADD COLUMN country text;
+
+
+ALTER TABLE public.pyramid_centers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS pyramid_centers_public_select ON public.pyramid_centers;
+CREATE POLICY pyramid_centers_public_select ON public.pyramid_centers
+  FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS pyramid_centers_admin_insert ON public.pyramid_centers;
+CREATE POLICY pyramid_centers_admin_insert ON public.pyramid_centers
+  FOR INSERT
+  WITH CHECK (auth.jwt() ->> 'role' = 'admin');
+
+DROP POLICY IF EXISTS pyramid_centers_admin_update ON public.pyramid_centers;
+CREATE POLICY pyramid_centers_admin_update ON public.pyramid_centers
+  FOR UPDATE
+  USING (auth.jwt() ->> 'role' = 'admin')
+  WITH CHECK (auth.jwt() ->> 'role' = 'admin');
+
+DROP POLICY IF EXISTS pyramid_centers_admin_delete ON public.pyramid_centers;
+CREATE POLICY pyramid_centers_admin_delete ON public.pyramid_centers
+  FOR DELETE
+  USING (auth.jwt() ->> 'role' = 'admin');
+
+
+
+-- ============= virtual_wellness_centers =============
+CREATE TABLE IF NOT EXISTS public.virtual_wellness_centers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  services text,
+  contact_info text,
+  website_url text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.virtual_wellness_centers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS virtual_wellness_centers_public_select ON public.virtual_wellness_centers;
+CREATE POLICY virtual_wellness_centers_public_select ON public.virtual_wellness_centers
+  FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS virtual_wellness_centers_admin_insert ON public.virtual_wellness_centers;
+CREATE POLICY virtual_wellness_centers_admin_insert ON public.virtual_wellness_centers
+  FOR INSERT
+  WITH CHECK (auth.jwt() ->> 'role' = 'admin');
+
+DROP POLICY IF EXISTS virtual_wellness_centers_admin_update ON public.virtual_wellness_centers;
+CREATE POLICY virtual_wellness_centers_admin_update ON public.virtual_wellness_centers
+  FOR UPDATE
+  USING (auth.jwt() ->> 'role' = 'admin')
+  WITH CHECK (auth.jwt() ->> 'role' = 'admin');
+
+DROP POLICY IF EXISTS virtual_wellness_centers_admin_delete ON public.virtual_wellness_centers;
+CREATE POLICY virtual_wellness_centers_admin_delete ON public.virtual_wellness_centers
+  FOR DELETE
+  USING (auth.jwt() ->> 'role' = 'admin');
+
+
+
+-- ============= spiritual_doctors =============
+CREATE TABLE IF NOT EXISTS public.spiritual_doctors (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  specialization text NOT NULL,
+  experience text NOT NULL,
+  rating numeric DEFAULT 5.0 CHECK (rating >= 0 AND rating <= 5),
+  image_url text,
+  available boolean DEFAULT true,
+  email text NOT NULL,
+  phone text,
+  language text DEFAULT 'english',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.spiritual_doctors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS spiritual_doctors_public_select ON public.spiritual_doctors;
+CREATE POLICY spiritual_doctors_public_select ON public.spiritual_doctors
+  FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS spiritual_doctors_admin_insert ON public.spiritual_doctors;
+CREATE POLICY spiritual_doctors_admin_insert ON public.spiritual_doctors
+  FOR INSERT
+  WITH CHECK (auth.jwt() ->> 'role' = 'admin');
+
+DROP POLICY IF EXISTS spiritual_doctors_admin_update ON public.spiritual_doctors;
+CREATE POLICY spiritual_doctors_admin_update ON public.spiritual_doctors
+  FOR UPDATE
+  USING (auth.jwt() ->> 'role' = 'admin')
+  WITH CHECK (auth.jwt() ->> 'role' = 'admin');
+
+DROP POLICY IF EXISTS spiritual_doctors_admin_delete ON public.spiritual_doctors;
+CREATE POLICY spiritual_doctors_admin_delete ON public.spiritual_doctors
+  FOR DELETE
+  USING (auth.jwt() ->> 'role' = 'admin');
+
+
+
+-- ============= Conditional trigger creation =============
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE n.nspname = 'public' AND p.proname = 'set_updated_at'
+  ) THEN
+
+    -- trusts
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_updated_at_trusts') THEN
+      EXECUTE $sql$
+        CREATE TRIGGER set_updated_at_trusts
+        BEFORE UPDATE ON public.trusts
+        FOR EACH ROW
+        EXECUTE FUNCTION public.set_updated_at();
+      $sql$;
+    END IF;
+
+    -- pyramid_centers
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_updated_at_pyramid_centers') THEN
+      EXECUTE $sql$
+        CREATE TRIGGER set_updated_at_pyramid_centers
+        BEFORE UPDATE ON public.pyramid_centers
+        FOR EACH ROW
+        EXECUTE FUNCTION public.set_updated_at();
+      $sql$;
+    END IF;
+
+    -- virtual_wellness_centers
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_updated_at_virtual_wellness_centers') THEN
+      EXECUTE $sql$
+        CREATE TRIGGER set_updated_at_virtual_wellness_centers
+        BEFORE UPDATE ON public.virtual_wellness_centers
+        FOR EACH ROW
+        EXECUTE FUNCTION public.set_updated_at();
+      $sql$;
+    END IF;
+
+    -- spiritual_doctors
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'set_updated_at_spiritual_doctors') THEN
+      EXECUTE $sql$
+        CREATE TRIGGER set_updated_at_spiritual_doctors
+        BEFORE UPDATE ON public.spiritual_doctors
+        FOR EACH ROW
+        EXECUTE FUNCTION public.set_updated_at();
+      $sql$;
+    END IF;
+  END IF;
+END
+$$ LANGUAGE plpgsql;

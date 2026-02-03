@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "358320789782",
+    "project_id": "sptabappnotifications",
+    "storage_bucket": "sptabappnotifications.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:358320789782:android:e4c4867df0eded1ee91837",
+        "android_client_info": {
+          "package_name": "com.spiritualtablets.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEYeaZqcScFr4eIk_lgbsNNfjxpv138lA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

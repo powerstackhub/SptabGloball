@@ -1,0 +1,129 @@
+
+  # Create content tables (books, audios, videos)
+
+  1. New Tables
+    - `books`
+      - `id` (uuid, primary key)
+      - `title` (text, not null)
+      - `author` (text, not null)
+      - `description` (text, nullable)
+      - `pdf_url` (text, not null)
+      - `thumbnail_url` (text, nullable)
+      - `language` (text, not null, default 'english')
+      - `created_at` (timestamptz, default now())
+      - `updated_at` (timestamptz, default now())
+
+    - `audios`
+      - `id` (uuid, primary key)
+      - `title` (text, not null)
+      - `artist` (text, not null)
+      - `description` (text, nullable)
+      - `audio_url` (text, not null)
+      - `youtube_url` (text, nullable)
+      - `thumbnail_url` (text, nullable)
+      - `duration` (text, not null)
+      - `language` (text, not null, default 'english')
+      - `created_at` (timestamptz, default now())
+      - `updated_at` (timestamptz, default now())
+
+    - `videos`
+      - `id` (uuid, primary key)
+      - `title` (text, not null)
+      - `description` (text, nullable)
+      - `youtube_url` (text, not null)
+      - `thumbnail_url` (text, nullable)
+      - `duration` (text, not null)
+      - `language` (text, not null, default 'english')
+      - `created_at` (timestamptz, default now())
+      - `updated_at` (timestamptz, default now())
+
+  2. Security
+    - Enable RLS on all tables
+    - Add policies for public read access
+    - Add policies for admin management
+*/
+
+-- Create books table
+CREATE TABLE IF NOT EXISTS books (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  author text NOT NULL,
+  description text,
+  pdf_url text NOT NULL,
+  thumbnail_url text,
+  language text NOT NULL DEFAULT 'english' CHECK (language IN ('english', 'tamil', 'hindi', 'telugu', 'kannada', 'malayalam')),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Create audios table
+CREATE TABLE IF NOT EXISTS audios (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  artist text NOT NULL,
+  description text,
+  audio_url text NOT NULL,
+  youtube_url text,
+  thumbnail_url text,
+  duration text NOT NULL,
+  language text NOT NULL DEFAULT 'english' CHECK (language IN ('english', 'tamil', 'hindi', 'telugu', 'kannada', 'malayalam')),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Create videos table
+CREATE TABLE IF NOT EXISTS videos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  youtube_url text NOT NULL,
+  thumbnail_url text,
+  duration text NOT NULL,
+  language text NOT NULL DEFAULT 'english' CHECK (language IN ('english', 'tamil', 'hindi', 'telugu', 'kannada', 'malayalam')),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE books ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE videos ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for books
+CREATE POLICY "Anyone can view books" ON books
+  FOR SELECT TO public USING (true);
+
+CREATE POLICY "Admins can manage books" ON books
+  FOR ALL TO public USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.role = 'admin'
+    )
+  );
+
+-- Create policies for audios
+CREATE POLICY "Anyone can view audios" ON audios
+  FOR SELECT TO public USING (true);
+
+CREATE POLICY "Admins can manage audios" ON audios
+  FOR ALL TO public USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.role = 'admin'
+    )
+  );
+
+-- Create policies for videos
+CREATE POLICY "Anyone can view videos" ON videos
+  FOR SELECT TO public USING (true);
+
+CREATE POLICY "Admins can manage videos" ON videos
+  FOR ALL TO public USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.role = 'admin'
+    )
+  );

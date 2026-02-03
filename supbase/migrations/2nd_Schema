@@ -1,0 +1,242 @@
+sinilarly i want to validate this as well exisit or not /*
+  # Create community and service tables
+
+  1. New Tables
+    - `events`
+      - `id` (uuid, primary key)
+      - `title` (text, not null)
+      - `description` (text, nullable)
+      - `date` (text, not null)
+      - `location` (text, not null)
+      - `image_url` (text, nullable)
+      - `category` (text, not null)
+      - `max_attendees` (integer, nullable)
+      - `created_at` (timestamptz, default now())
+      - `updated_at` (timestamptz, default now())
+
+    - `newsletters`
+      - `id` (uuid, primary key)
+      - `title` (text, not null)
+      - `description` (text, nullable)
+      - `content` (text, not null)
+      - `pdf_url` (text, nullable)
+      - `thumbnail_url` (text, nullable)
+      - `published_date` (text, not null)
+      - `created_at` (timestamptz, default now())
+      - `updated_at` (timestamptz, default now())
+
+    - `gallery`
+      - `id` (uuid, primary key)
+      - `title` (text, not null)
+      - `description` (text, nullable)
+      - `image_url` (text, not null)
+      - `category` (text, not null)
+      - `created_at` (timestamptz, default now())
+      - `updated_at` (timestamptz, default now())
+
+    - `counselors`
+      - `id` (uuid, primary key)
+      - `name` (text, not null)
+      - `specialization` (text, not null)
+      - `experience` (text, not null)
+      - `rating` (numeric, default 5.0)
+      - `image_url` (text, nullable)
+      - `available` (boolean, default true)
+      - `email` (text, not null)
+      - `phone` (text, nullable)
+      - `language` (text, not null, default 'english')
+      - `created_at` (timestamptz, default now())
+      - `updated_at` (timestamptz, default now())
+
+    - `admission_centers`
+      - `id` (uuid, primary key)
+      - `name` (text, not null)
+      - `address` (text, not null)
+      - `phone` (text, not null)
+      - `email` (text, not null)
+      - `hours` (text, not null)
+      - `created_at` (timestamptz, default now())
+      - `updated_at` (timestamptz, default now())
+
+    - `volunteers`
+      - `id` (uuid, primary key)
+      - `full_name` (text, not null)
+      - `email` (text, not null)
+      - `phone` (text, not null)
+      - `skills` (text, nullable)
+      - `availability` (text, not null)
+      - `experience` (text, nullable)
+      - `motivation` (text, not null)
+      - `created_at` (timestamptz, default now())
+      - `updated_at` (timestamptz, default now())
+
+  2. Security
+    - Enable RLS on all tables
+    - Add appropriate policies for each table
+*/
+
+-- Create events table
+CREATE TABLE IF NOT EXISTS events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  date text NOT NULL,
+  location text NOT NULL,
+  image_url text,
+  category text NOT NULL CHECK (category IN ('meditation', 'workshops', 'anandho', 'global', 'gallery')),
+  max_attendees integer,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Create newsletters table
+CREATE TABLE IF NOT EXISTS newsletters (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  content text NOT NULL,
+  pdf_url text,
+  thumbnail_url text,
+  published_date text NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Create gallery table
+CREATE TABLE IF NOT EXISTS gallery (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  image_url text NOT NULL,
+  category text NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Create counselors table
+CREATE TABLE IF NOT EXISTS counselors (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  specialization text NOT NULL,
+  experience text NOT NULL,
+  rating numeric DEFAULT 5.0 CHECK (rating >= 0 AND rating <= 5),
+  image_url text,
+  available boolean DEFAULT true,
+  email text NOT NULL,
+  phone text,
+  language text NOT NULL DEFAULT 'english' CHECK (language IN ('english', 'tamil', 'hindi', 'telugu', 'kannada', 'malayalam')),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Create admission_centers table
+CREATE TABLE IF NOT EXISTS admission_centers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  address text NOT NULL,
+  phone text NOT NULL,
+  email text NOT NULL,
+  hours text NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Create volunteers table
+CREATE TABLE IF NOT EXISTS volunteers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name text NOT NULL,
+  email text NOT NULL,
+  phone text NOT NULL,
+  skills text,
+  availability text NOT NULL,
+  experience text,
+  motivation text NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE newsletters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gallery ENABLE ROW LEVEL SECURITY;
+ALTER TABLE counselors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admission_centers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE volunteers ENABLE ROW LEVEL SECURITY;
+
+-- Events policies
+CREATE POLICY "Anyone can view events" ON events
+  FOR SELECT TO public USING (true);
+
+CREATE POLICY "Admins can manage events" ON events
+  FOR ALL TO public USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.role = 'admin'
+    )
+  );
+
+-- Newsletters policies
+CREATE POLICY "Anyone can view newsletters" ON newsletters
+  FOR SELECT TO public USING (true);
+
+CREATE POLICY "Admins can manage newsletters" ON newsletters
+  FOR ALL TO public USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.role = 'admin'
+    )
+  );
+
+-- Gallery policies
+CREATE POLICY "Anyone can view gallery" ON gallery
+  FOR SELECT TO public USING (true);
+
+CREATE POLICY "Admins can manage gallery" ON gallery
+  FOR ALL TO public USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.role = 'admin'
+    )
+  );
+
+-- Counselors policies
+CREATE POLICY "Anyone can view counselors" ON counselors
+  FOR SELECT TO public USING (true);
+
+CREATE POLICY "Admins can manage counselors" ON counselors
+  FOR ALL TO public USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.role = 'admin'
+    )
+  );
+
+-- Admission centers policies
+CREATE POLICY "Anyone can view admission centers" ON admission_centers
+  FOR SELECT TO public USING (true);
+
+CREATE POLICY "Admins can manage admission centers" ON admission_centers
+  FOR ALL TO public USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.role = 'admin'
+    )
+  );
+
+-- Volunteers policies
+CREATE POLICY "Anyone can register as volunteer" ON volunteers
+  FOR INSERT TO public WITH CHECK (true);
+
+CREATE POLICY "Admins can view volunteers" ON volunteers
+  FOR SELECT TO public USING (
+    EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE profiles.id = auth.uid() 
+      AND profiles.role = 'admin'
+    )
+  );"
